@@ -17,9 +17,14 @@ public class BotEvents {
 			return;
 		/*Check if it's a DM*/
 		if(e.getGuild()==null) {
+			EmbedObject o = new EmbedBuilder()
+					.withTitle("Invite Me")
+					.withDesc("Direct messaging is unavailable. Add me to a server instead.")
+					.withUrl("https://thekgg.xyz/tiny/nxbot")
+					.build();
 			RequestBuffer.request(() -> {
 				try {
-					e.getClient().getOrCreatePMChannel(e.getAuthor()).sendMessage("DM's are unavailable.");
+					e.getClient().getOrCreatePMChannel(e.getAuthor()).sendMessage(o);
 				} catch (Exception e1) {
 					/*Sending a message might create an error loop*/
 					e1.printStackTrace();
@@ -34,7 +39,7 @@ public class BotEvents {
 
 		/*Check user permissions*/
 		boolean admin = e.getAuthor().getPermissionsForGuild(e.getGuild()).contains(Permissions.ADMINISTRATOR);
-		boolean isCommandChannel = e.getChannel().getLongID()== BotUtil.getCommandChannel(e.getGuild().getLongID());
+		boolean isCommandChannel = e.getChannel().getLongID()==BotUtil.getCommandChannel(e.getGuild().getLongID());
 		boolean botAdmin = BotUtil.isBotAdmin(e.getAuthor().getLongID());
 
 		/*Allow admins to run commands outside of command channels*/
@@ -117,7 +122,7 @@ public class BotEvents {
 					info="This version's changelog is too long, please click the link to get more information.";
 				String changes = info.split("^url")[0];
 				EmbedBuilder eb = new EmbedBuilder()
-						.withTitle("Changes in version "+ UpdateUtils.formatUpdateVersion(args[1]))
+						.withTitle("Changes in version "+UpdateUtils.formatUpdateVersion(args[1]))
 						.withUrl(UpdateUtils.getLink(args[1]))
 						.withDesc(info);
 				if(changes.contains("^url")) {
