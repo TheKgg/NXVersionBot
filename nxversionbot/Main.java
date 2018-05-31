@@ -17,6 +17,7 @@ public class Main {
 	final static String folder = new JFileChooser().getFileSystemView().getDefaultDirectory().toString().replace("\\", "/") + "/NXVersionBot/"; /*Bot's directory*/
 	private static IDiscordClient client;
 	private static boolean clientCompletelyReady=false;
+	private static Thread mainThread;
 
 	public static void main(String[] args) { new Main(); }
 
@@ -25,6 +26,7 @@ public class Main {
 		if (client == null)
 			return;
 
+		mainThread=Thread.currentThread();
 
 		client.getDispatcher().registerListener(new BotEvents());
 		client.login();
@@ -56,7 +58,7 @@ public class Main {
 
 		/*main loop for announcements*/
 		while (connected()) {
-			try { Thread.sleep(60000); } catch (Exception e) { Log.warn("Logging out, sleeping got interrupted."); client.logout(); }
+			try { Thread.sleep(60000); } catch (Exception e) { Log.warn("Logging out, sleeping got interrupted."); break; }
 
 			/*Check and save every 5 minutes*/
 			d=new Date();
@@ -64,14 +66,16 @@ public class Main {
 				continue;
 
 			BotUtil.save();
-
 			String newCurrentVersion = UpdateUtils.getLatestVersion();
+
+
+			Log.log(newCurrentVersion+">"+currentVersion+"?");
 
 			/*If the newest version is not the same as the version that was gotten before, announce it!*/
 			if(newCurrentVersion!=null && currentVersion!=null && !newCurrentVersion.equals(currentVersion)) {
-				currentVersion=newCurrentVersion;
 				announceNewVersion(currentVersion);
 			}
+			currentVersion=newCurrentVersion;
 		}
 		client.logout();
 	}
@@ -110,7 +114,7 @@ public class Main {
 	}
 
 	/*Goes thru all of the announcement channels and send the message*/
-	private static void announceNewVersion(String version) {
+	static void announceNewVersion(String version) {
 		/*Build embed object*/
 		EmbedBuilder eb = new EmbedBuilder()
 				.withTitle("There is a new Nintendo Switch version! (" + version + ")")
@@ -130,6 +134,11 @@ public class Main {
 				}
 			}
 		}
+	}
+
+	/*Logs out the bot and shuts down the program*/
+	static void logout() {
+		mainThread.interrupt();
 	}
 
 

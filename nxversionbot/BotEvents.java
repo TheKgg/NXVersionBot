@@ -78,8 +78,10 @@ public class BotEvents {
 			return;
 		args[0]=args[0].replaceFirst(BotUtil.prefix, "");
 		switch(args[0]) {
+
+		/*Server management*/
 		case "setchannel":
-			if(!admin)
+			if(adminCheck(admin, channel))
 				break;
 			if(args.length<2) {
 				Main.sendMessage("Please specify which channel you're setting!", channel);
@@ -109,6 +111,7 @@ public class BotEvents {
 				Main.sendMessage(new EmbedBuilder().withTitle(BotUtil.prefix+"setchannel <commands/announcements> <channel>").build(), channel);
 			}
 			break;
+		/*Any user if they are in the right channel*/
 		case "nxver":
 			if(args.length<2) {
 				Main.sendMessage("Please include the version in your message.",channel);
@@ -122,7 +125,7 @@ public class BotEvents {
 					info="This version's changelog is too long, please click the link to get more information.";
 				String changes = info.split("^url")[0];
 				EmbedBuilder eb = new EmbedBuilder()
-						.withTitle("Changes in version "+UpdateUtils.formatUpdateVersion(args[1]))
+						.withTitle("Changes in version "+ UpdateUtils.formatUpdateVersion(args[1]))
 						.withUrl(UpdateUtils.getLink(args[1]))
 						.withDesc(info);
 				if(changes.contains("^url")) {
@@ -156,21 +159,35 @@ public class BotEvents {
 					.build();
 			Main.sendMessage(o, channel);
 			break;
-		case "fixitpls":
-			if(!isBotAdmin)
-				return;
-			UpdateUtils.fillVersionMap();
-			Main.sendMessage("Recontacted the Ninty servers for update information.", channel);
-			break;
-		case "forcesave":
-			if(!isBotAdmin)
-				return;
-			BotUtil.save();
-			Main.sendMessage("Attempted to save.", channel);
-			break;
 		case "help":
 			Main.sendMessage(buildJoinMessage(), channel);
 			break;
+		/*Bot admins only*/
+		case "fixitpls":
+			if(!isBotAdmin)
+				break;
+			UpdateUtils.fillVersionMap();
+			Main.sendMessage("Attempted to refill the Nintendo Switch version map.", channel);
+			break;
+		case "logoutpls":
+			if(!isBotAdmin)
+				break;
+			Main.sendMessage("Logging out...", channel);
+			Main.logout();
+			break;
+		case "announcepls":
+			if(!isBotAdmin)
+				break;
+			Main.announceNewVersion(UpdateUtils.getLatestVersion());
+			break;
 		}
+	}
+
+	/*Makes invalid permissions messaging more elegant*/
+	private static boolean adminCheck(boolean isAdmin, long channel) {
+		if(isAdmin)
+			return false;
+		Main.sendMessage("Sorry, you have insufficient permissions.", channel);
+		return true;
 	}
 }

@@ -30,7 +30,9 @@ class Log {
 	/* Converts an exception to a string.*/
 	private static String exToString(Exception e) {
 		StringWriter s = new StringWriter();
-		e.printStackTrace(new PrintWriter(s));
+		try (PrintWriter pw = new PrintWriter(s)) {
+			e.printStackTrace(pw);
+		}
 		return s.toString();
 	}
 }
