@@ -27,7 +27,6 @@ public class Main {
 			return;
 
 		mainThread=Thread.currentThread();
-
 		client.getDispatcher().registerListener(new BotEvents());
 		client.login();
 

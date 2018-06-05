@@ -39,7 +39,7 @@ public class BotEvents {
 
 		/*Check user permissions*/
 		boolean admin = e.getAuthor().getPermissionsForGuild(e.getGuild()).contains(Permissions.ADMINISTRATOR);
-		boolean isCommandChannel = e.getChannel().getLongID()==BotUtil.getCommandChannel(e.getGuild().getLongID());
+		boolean isCommandChannel = e.getChannel().getLongID()== BotUtil.getCommandChannel(e.getGuild().getLongID());
 		boolean botAdmin = BotUtil.isBotAdmin(e.getAuthor().getLongID());
 
 		/*Allow admins to run commands outside of command channels*/

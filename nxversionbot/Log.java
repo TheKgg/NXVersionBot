@@ -10,7 +10,7 @@ class Log {
 	/*Logs to me*/
 	static void log(String s) {
 		System.out.println(s);
-		if(s.length()<2000)
+		if(s.length()<2000 && Main.connected())
 			Main.sendMessage(s, logChannel);
 	}
 

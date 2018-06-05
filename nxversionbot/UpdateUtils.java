@@ -1,13 +1,15 @@
 package NXVersionBot.nxversionbot;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
 class UpdateUtils {
-	private final static String nintendoUpdateLog = "http://en-americas-support.nintendo.com/app/answers/detail/a_id/22525/p/897"; /*The official Switch changelog.*/
+	private final static String nintendoUpdateLog = "https://en-americas-support.nintendo.com/app/answers/detail/a_id/22525/p/897/"; /*The official Switch changelog.*/
 	private final static String unofficialUpdateLog = "http://switchbrew.org/index.php?title="; /*The unofficial Switch changelog.*/
 	private static HashMap<String, String> verMap = new HashMap<>(); /**/
 
@@ -81,7 +83,16 @@ class UpdateUtils {
 		verMap.put("4.2.0", "Users can now select Snoop Dogg as an icon for their user\nGeneral system stability improvements to enhance the user's experience");
 
 		/*Downloads web page into a string to be parsed*/
-		try (InputStream is = new URL(nintendoUpdateLog).openStream(); ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+		URLConnection c=null;
+		try {
+			c = new URL(nintendoUpdateLog).openConnection();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if(c==null)
+			return null;
+
+		try (InputStream is=c.getInputStream(); ByteArrayOutputStream os = new ByteArrayOutputStream()) {
 			byte[] b = new byte[2048];
 			int length;
 			while ((length = is.read(b)) != -1) {
@@ -92,8 +103,10 @@ class UpdateUtils {
 			Log.error(e, "Error getting version changes.");
 		}
 
-		/*Fix HTML tags*/
 		if(info!=null) {
+			if(info.replace(" ","").isEmpty())
+				return null;
+			/*Fix HTML tags*/
 			info = info.replace("</a>", " (hyperlink, see official site)");
 			info = REMOVE_TAGS.matcher(info).replaceAll("");
 			info=info.replace("&gt;",">").replace("&lt;","<");
