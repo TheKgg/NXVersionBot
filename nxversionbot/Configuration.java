@@ -37,8 +37,6 @@ class Configuration {
 		} catch(Exception e) {
 			Log.error(e, "Failed to save config. (Error during writing)");
 		}
-
-
 	}
 
 	/*Reads the configuration file to a list*/
@@ -62,17 +60,18 @@ class Configuration {
 			while((line = br.readLine())!=null) {
 				String[] channels = line.split(",");
 
-				/*It shouldn't be less than 3*/
-				if(channels.length<3) {
+				/*It shouldn't be less than 4*/
+				if(channels.length<4) {
 					Log.warn("Guild "+channels[0]+"'s configuration got messed up.");
+					Thread.sleep(500);
+					continue;
 				}
-				Long[] channelsLong = {Long.parseLong(channels[0]), Long.parseLong(channels[1]), Long.parseLong(channels[2])};
+				Long[] channelsLong = {Long.parseLong(channels[0]), Long.parseLong(channels[1]), Long.parseLong(channels[2]), Long.parseLong(channels[3])};
 				guildChannels.add(channelsLong);
 			}
 		} catch(Exception e) {
 			Log.error(e, "Error loading configuration. (Error during reading)");
 		}
-
 		return guildChannels;
 	}
 }

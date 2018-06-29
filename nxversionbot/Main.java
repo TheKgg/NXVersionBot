@@ -5,7 +5,9 @@ import sx.blah.discord.api.IDiscordClient;
 import sx.blah.discord.api.internal.json.objects.EmbedObject;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IGuild;
+import sx.blah.discord.handle.obj.IRole;
 import sx.blah.discord.util.EmbedBuilder;
+import sx.blah.discord.util.RateLimitException;
 import sx.blah.discord.util.RequestBuffer;
 
 import javax.swing.*;
@@ -43,7 +45,7 @@ public class Main {
 		String currentVersion = UpdateUtils.getLatestVersion();
 		BotUtil.load();
 
-		/*Wait a few seconds before sending welcome messages, since GuildCreationEvents are activated when Guilds are being loaded. (Probably a better way to do that)*/
+		/*Wait a few seconds before sending welcome messages, since GuildCreationEvents are activated when Guilds are being loaded. (There is probably a better way to do that)*/
 		try {
 			Thread.sleep(20000);
 		} catch (InterruptedException e) {
@@ -100,6 +102,8 @@ public class Main {
 		RequestBuffer.request(() -> {
 			try {
 				c.sendMessage(msg);
+			} catch (RateLimitException e) {
+				throw e;
 			} catch (Exception e) {
 				/*Sending a message might create an error loop*/
 				e.printStackTrace();
@@ -112,7 +116,7 @@ public class Main {
 		return client.isReady() && clientCompletelyReady;
 	}
 
-	/*Goes thru all of the announcement channels and send the message*/
+	/*Goes through all of the announcement channels and send the message*/
 	static void announceNewVersion(String version) {
 		/*Build embed object*/
 		EmbedBuilder eb = new EmbedBuilder()
@@ -125,20 +129,39 @@ public class Main {
 		for(IGuild guild : client.getGuilds()) {
 			long channel = BotUtil.getAnnounceChannel(guild.getLongID());
 			if(channel!=0L) {
+				long role = BotUtil.getAnnounceRole(guild.getLongID());
+				/*0 means disabled, 1 means everyone, and anything else means an actual role*/
+				if(role!=0)
+					if(role==1)
+						Main.sendMessage("@here :", channel);
+					else if(!Main.getRoleNameFromId(role).equals(""))
+						Main.sendMessage("<@&"+role+"> :", channel);
+					else
+						Main.sendMessage("Hmm, looks like the role I was setup to ping doesn't exist. Please reset that admins!", channel);
 				Main.sendMessage(msg, channel);
-				try {
-					Thread.sleep(50);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+				try { Thread.sleep(50); } catch (Exception ignored) {}
 			}
 		}
 	}
 
-	/*Logs out the bot and shuts down the program*/
 	static void logout() {
 		mainThread.interrupt();
 	}
 
+	static String getRoleNameFromId(Long id) {
+		if(id==1)
+			return "everyone";
+		IRole r = client.getRoleByID(id);
+		if(r==null)
+			return "";
+		return r.getName();
+	}
 
+	static long getRoleIdFromNameAndGuild(String name, long guild) {
+		name=name.toLowerCase().replace(" ","");
+		for(IRole role : client.getRoles())
+			if(role.getName().toLowerCase().replace(" ", "").equals(name) && guild==role.getGuild().getLongID())
+				return role.getLongID();
+		return 0L;
+	}
 }

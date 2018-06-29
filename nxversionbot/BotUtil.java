@@ -8,55 +8,45 @@ import java.util.Arrays;
 import java.util.List;
 
 class BotUtil {
-	private static volatile List<Long[]> guildChannels; /*The command channels that are set by server admins*/
+	private static volatile List<Long[]> guildSettings; /*The settings per Discord guild*/
 	private static List<Long> botAdmins = new ArrayList<>(Arrays.asList(197085351263731713L, 259767890759254016L, 107299728592515072L)); /*coolios*/
 	final static String prefix = ".";
 
-	static synchronized long getCommandChannel(long guild) {
-		for(Long[] ids : guildChannels) {
+	private static synchronized long getId(long guild, int id) {
+		for(Long[] ids : guildSettings) {
 			if(ids[0]==guild) {
-				return ids[1];
+				return ids[id];
 			}
 		}
 		return 0L;
 	}
 
-	static synchronized long getAnnounceChannel(long guild) {
-		for(Long[] ids : guildChannels) {
-			if(ids[0]==guild) {
-				return ids[2];
-			}
-		}
-		return 0L;
-	}
-
-	static synchronized void addCommandChannel(long guild, long channel) {
+	private static synchronized void setId(long guild, int id, long value) {
 		boolean addNewOne=true;
-		for(Long[] info : guildChannels)
+		for(Long[] info : guildSettings)
 			if(info[0]==guild) {
-				info[1]=channel;
+				info[id]=value;
 				addNewOne=false;
 				break;
 			}
 		if(addNewOne) {
-			Long[] info = { guild, channel, 0L };
-			guildChannels.add(info);
+			Long[] info = { guild, 0L, 0L, 0L };
+			info[id] = value;
+			guildSettings.add(info);
 		}
 	}
 
-	static synchronized void addAnnounceChannel(long guild, long channel) {
-		boolean addNewOne=true;
-		for(Long[] info : guildChannels)
-			if(info[0]==guild) {
-				info[2]=channel;
-				addNewOne=false;
-				break;
-			}
-		if(addNewOne) {
-			Long[] info = { guild, 0L, channel };
-			guildChannels.add(info);
-		}
-	}
+	static synchronized long getCommandChannel(long guild) { return getId(guild, 1); }
+
+	static synchronized long getAnnounceChannel(long guild) { return getId(guild, 2); }
+
+	static synchronized long getAnnounceRole(long guild) { return getId(guild, 3); }
+
+	static synchronized void setCommandChannel(long guild, long channel) { setId(guild, 1, channel); }
+
+	static synchronized void setAnnounceChannel(long guild, long channel) { setId(guild, 2, channel); }
+
+	static synchronized void setAnnounceRole(long guild, long id) { setId(guild, 3, id); }
 
 	/*Gets the bot token that is stored in an external file. */
 	static String getToken() {
@@ -70,16 +60,16 @@ class BotUtil {
 		return token;
 	}
 
-	/*Bot admins are certain people that have privs to do more things with it*/
+	/*Bot admins are certain people that have privileges to do more things with it*/
 	static boolean isBotAdmin(long uid) {
 		return botAdmins.contains(uid);
 	}
 
 	/*Saves the configuration*/
 	static synchronized void save() {
-		Configuration.saveConfiguration(guildChannels);
+		Configuration.saveConfiguration(guildSettings);
 	}
 	static synchronized void load() {
-		guildChannels= Configuration.loadConfiguration();
+		guildSettings = Configuration.loadConfiguration();
 	}
 }

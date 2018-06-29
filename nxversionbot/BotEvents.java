@@ -39,7 +39,7 @@ public class BotEvents {
 
 		/*Check user permissions*/
 		boolean admin = e.getAuthor().getPermissionsForGuild(e.getGuild()).contains(Permissions.ADMINISTRATOR);
-		boolean isCommandChannel = e.getChannel().getLongID()== BotUtil.getCommandChannel(e.getGuild().getLongID());
+		boolean isCommandChannel = e.getChannel().getLongID()==BotUtil.getCommandChannel(e.getGuild().getLongID());
 		boolean botAdmin = BotUtil.isBotAdmin(e.getAuthor().getLongID());
 
 		/*Allow admins to run commands outside of command channels*/
@@ -62,6 +62,7 @@ public class BotEvents {
 		if (join == null) {
 			EmbedBuilder eb = new EmbedBuilder()
 					.appendField(BotUtil.prefix+"setchannel <commands/announcements> <channel>", "Sets the channel for your server.", false)
+					.appendField(BotUtil.prefix+"setannouncerole <id/name/disable/everyone>", "Sets the role to ping when a new version comes out.", false)
 					.appendField(BotUtil.prefix+"nxver <version>", "Gets the version changes.", false)
 					.appendField(BotUtil.prefix+"website", "Returns this bot's website.", false)
 					.appendField(BotUtil.prefix+"settings", "Shows this server's settings.", false)
@@ -99,10 +100,10 @@ public class BotEvents {
 					}
 				}
 				if(args[1].equals("commands")) {
-					BotUtil.addCommandChannel(guild, channelId);
+					BotUtil.setCommandChannel(guild, channelId);
 					Main.sendMessage("Added <#" + channelId + "> as this server's command channel.", channel);
 				} else {
-					BotUtil.addAnnounceChannel(guild, channelId);
+					BotUtil.setAnnounceChannel(guild, channelId);
 					Main.sendMessage("Added <#" + channelId + "> as this server's announcement channel.", channel);
 				}
 
@@ -111,6 +112,41 @@ public class BotEvents {
 				Main.sendMessage(new EmbedBuilder().withTitle(BotUtil.prefix+"setchannel <commands/announcements> <channel>").build(), channel);
 			}
 			break;
+		case "setannouncerole":
+			if(adminCheck(admin, channel))
+				break;
+			switch (args[1]) {
+			case "nothing":
+			case "clear":
+			case "none":
+			case "disable":  /*Don't ping anyone*/
+				BotUtil.setAnnounceRole(guild, 0);
+				Main.sendMessage("You disabled pinging a role.", channel);
+				return;
+			case "@everyone":
+			case "@here":
+			case "everyone":
+			case "here":  /*Ping everyone*/
+				BotUtil.setAnnounceRole(guild, 1);
+				Main.sendMessage("Announce role set to `@here`", channel);
+				return;
+			default:  /*Ping a role*/
+				args = message.split(" ", 2); /*a role may have spaces*/
+				args[1] = args[1].replace("<@&", "").replace(">", "").toLowerCase();
+				long roleId;
+				try {
+					roleId = Long.parseLong(args[1]);
+				} catch (Exception ignored) {
+					roleId = Main.getRoleIdFromNameAndGuild(args[1], guild);
+				}
+				if (roleId == 0) {
+					Main.sendMessage("Error finding role \""+args[1]+".\" Say either \"everyone,\" \"disable,\" a role ID, or a role name.", channel);
+				} else {
+					BotUtil.setAnnounceRole(guild, roleId);
+					Main.sendMessage("Announce role set to `@" + Main.getRoleNameFromId(roleId) + "`", channel);
+				}
+				return;
+			}
 		/*Any user if they are in the right channel*/
 		case "nxver":
 			if(args.length<2) {
@@ -119,22 +155,20 @@ public class BotEvents {
 			}
 			String info = UpdateUtils.getUpdateInformation(args[1]);
 			if(info==null) {
-				Main.sendMessage("Looks like that version doesn't exist. Double check that, then try again.", channel);
+				Main.sendMessage("Cannot find that version. Double check that, then try again.", channel);
 			} else {
 				if(info.length()>1500)
 					info="This version's changelog is too long, please click the link to get more information.";
 				String changes = info.split("^url")[0];
 				EmbedBuilder eb = new EmbedBuilder()
-						.withTitle("Changes in version "+ UpdateUtils.formatUpdateVersion(args[1]))
+						.withTitle("Changes in version "+UpdateUtils.formatUpdateVersion(args[1]))
 						.withUrl(UpdateUtils.getLink(args[1]))
 						.withDesc(info);
 				if(changes.contains("^url")) {
 					String[] urls = info.split("^url")[1].split("\n");
-					for(int i = 0; i<urls.length; i++) {
+					for(int i = 0; i<urls.length; i++)
 						eb.appendField("Link "+i,"",false).withUrl(urls[i]);
-					}
 				}
-
 				Main.sendMessage(eb.build(), channel);
 			}
 			break;
@@ -144,6 +178,9 @@ public class BotEvents {
 		case "settings":
 			String cmdChannel = Long.toString(BotUtil.getCommandChannel(guild));
 			String announceChannel = Long.toString(BotUtil.getAnnounceChannel(guild));
+			String announceRole = Main.getRoleNameFromId(BotUtil.getAnnounceRole(guild));
+			if(announceRole.equals(""))
+				announceRole="Disabled.";
 			if(cmdChannel.length()<5)
 				cmdChannel="Channel is not set up currently.";
 			else
@@ -152,12 +189,13 @@ public class BotEvents {
 				announceChannel="Channel is not set up currently.";
 			else
 				announceChannel="<#"+announceChannel+">";
-			EmbedObject o = new EmbedBuilder().withTitle("This Server's NXVersionBot Settings:")
+			EmbedBuilder b = new EmbedBuilder().withTitle("This Server's NXVersionBot Settings:")
 					.appendField("Command Channel", cmdChannel, false)
 					.appendField("Announcement Channel", announceChannel, false)
-					.withDesc("Type\n.setchannel <commands/announcements> <channel>\nto change these settings.")
-					.build();
-			Main.sendMessage(o, channel);
+					.appendField("Announcement Role", announceRole, false);
+			if(adminCheck(admin, channel))
+				b.withDesc("Type\n.setchannel <commands/announcements> <channel>\n.setannouncerole <id/name/disable>\nto change these settings.");
+			Main.sendMessage(b.build(), channel);
 			break;
 		case "help":
 			Main.sendMessage(buildJoinMessage(), channel);

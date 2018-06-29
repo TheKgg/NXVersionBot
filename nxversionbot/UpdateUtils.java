@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 class UpdateUtils {
 	private final static String nintendoUpdateLog = "https://en-americas-support.nintendo.com/app/answers/detail/a_id/22525/p/897/"; /*The official Switch changelog.*/
 	private final static String unofficialUpdateLog = "http://switchbrew.org/index.php?title="; /*The unofficial Switch changelog.*/
-	private static HashMap<String, String> verMap = new HashMap<>(); /**/
+	private static HashMap<String, String> nxMap = new HashMap<>();
 
 	/*Grabs update information from the server*/
 	static String getUpdateInformation(String update) {
@@ -19,7 +19,7 @@ class UpdateUtils {
 		if (update == null) {
 			return null;
 		}
-		return verMap.getOrDefault(update, null);
+		return nxMap.getOrDefault(update, null);
 	}
 
 	/*Gets the unofficial changelog link*/
@@ -36,7 +36,7 @@ class UpdateUtils {
 	/*
 	Format the version correctly.
 	Does feel overcomplicated, but makes it more resilient to typos.
-	Also isn't future proof, by the time 10.0.0 rolls around this will need to be updated.
+	Assuming they never do something like 10.10.0, this will continue to work.
 	*/
 	static String formatUpdateVersion(String update) {
 		if (update.isEmpty())
@@ -53,25 +53,21 @@ class UpdateUtils {
 			return null;
 		}
 
-		/*Make it three numbers long. 5 -> 500 and 50000 -> 500*/
+		/*Make it at least three numbers long. 5 -> 500*/
 		if (update.length() < 3) {
 			formattedUpdate.append(update);
 			while (formattedUpdate.length() < 3)
 				formattedUpdate.append("0");
 			update = formattedUpdate.toString();
-			formattedUpdate = new StringBuilder();
-		} else if (update.length() > 3)
-			update = update.substring(0, 3);
-
-		/*Put back the dots.*/
-		String[] vars = update.split("");
-		for (String var : vars) {
-			formattedUpdate.append(var);
-			formattedUpdate.append(".");
 		}
 
-		update = formattedUpdate.substring(0, 5);
-		return update;
+		/*
+		Put back the dots. Since the major update is the one that will go above 9 (like 10.0.0), we reverse it, split 3 times,
+		put periods in between the splits, and reverse it again.
+		*/
+		String[] vars = new StringBuilder(update).reverse().toString().split("", 3);
+		update = vars[0]+"."+vars[1]+"."+vars[2];
+		return new StringBuilder(update).reverse().toString();
 	}
 
 	/*Returns formatted site*/
@@ -80,7 +76,7 @@ class UpdateUtils {
 		Pattern REMOVE_TAGS = Pattern.compile("<.+?>");
 
 		/*meme*/
-		verMap.put("4.2.0", "Users can now select Snoop Dogg as an icon for their user\nGeneral system stability improvements to enhance the user's experience");
+		nxMap.put("4.2.0", "Users can now select Snoop Dogg as an icon for their user\nGeneral system stability improvements to enhance the user's experience");
 
 		/*Downloads web page into a string to be parsed*/
 		URLConnection c=null;
@@ -118,8 +114,6 @@ class UpdateUtils {
 	/*Fills the hash map with version changes*/
 	static void fillVersionMap() {
 		String info = getFormattedNintendoSite();
-
-		/*It didn't download correctly*/
 		if(info==null) {
 			Log.warn("Please run \".fixitpls\"");
 			return;
@@ -127,7 +121,7 @@ class UpdateUtils {
 
 		/*Do the parsing!*/
 		String[] updates = info.split("Improvements Included in Version ");
-		for(String improvements : updates) { /*Ignore the first one because it's just the website header*/
+		for(String improvements : updates) {
 			/*Get version and improvements*/
 			String update = improvements.substring(0, improvements.indexOf(" ")); /*Uses index instead of a set number in case 10.0.0 becomes a thing.*/
 			improvements=improvements.substring(improvements.indexOf(")\n")+2);
@@ -141,7 +135,7 @@ class UpdateUtils {
 			while(improvements.contains("\n\n\n"))
 				improvements=improvements.replace("\n\n\n", "\n\n");
 
-			verMap.put(update, improvements);
+			nxMap.put(update, improvements);
 		}
 	}
 
